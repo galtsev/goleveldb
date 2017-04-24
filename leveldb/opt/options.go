@@ -43,6 +43,8 @@ var (
 	DefaultWriteL0SlowdownTrigger        = 8
 )
 
+type CompactionFilterFactory func() func(key, value []byte) bool
+
 // Cacher is a caching algorithm.
 type Cacher interface {
 	New(capacity int) cache.Cacher
@@ -169,6 +171,12 @@ type Options struct {
 	//
 	// The default value is 4KiB.
 	BlockSize int
+
+	// Factory function for compaction filter. Called once for each compaction run
+	// returned value is a function, that called for each record (key/value pair) touched
+	// during this compaction run. If filter function return false, record would be
+	// deleted during this compaction run
+	CompactionFilterFactory CompactionFilterFactory
 
 	// CompactionExpandLimitFactor limits compaction size after expanded.
 	// This will be multiplied by table size limit at compaction target level.
@@ -396,6 +404,13 @@ func (o *Options) GetBlockSize() int {
 		return DefaultBlockSize
 	}
 	return o.BlockSize
+}
+
+func (o *Options) GetCompactionFilter() func(key, value []byte) bool {
+	if o.CompactionFilterFactory == nil {
+		return nil
+	}
+	return o.CompactionFilterFactory()
 }
 
 func (o *Options) GetCompactionExpandLimit(level int) int {

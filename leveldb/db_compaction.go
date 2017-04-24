@@ -366,6 +366,7 @@ type tableCompactionBuilder struct {
 	minSeq    uint64
 	strict    bool
 	tableSize int
+	filter    func(key, value []byte) bool
 
 	tw *tWriter
 }
@@ -393,7 +394,11 @@ func (b *tableCompactionBuilder) appendKV(key, value []byte) error {
 	}
 
 	// Write key/value into table.
-	return b.tw.append(key, value)
+	if b.filter == nil || b.filter(key, value) {
+		return b.tw.append(key, value)
+	} else {
+		return nil
+	}
 }
 
 func (b *tableCompactionBuilder) needFlush() bool {
@@ -573,6 +578,7 @@ func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 		minSeq:    minSeq,
 		strict:    db.s.o.GetStrict(opt.StrictCompaction),
 		tableSize: db.s.o.GetCompactionTableSize(c.sourceLevel + 1),
+		filter:    db.s.o.GetCompactionFilter(),
 	}
 	db.compactionTransact("table@build", b)
 
