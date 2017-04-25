@@ -13,6 +13,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/cache"
 	"github.com/syndtr/goleveldb/leveldb/comparer"
 	"github.com/syndtr/goleveldb/leveldb/filter"
+	"time"
 )
 
 const (
@@ -42,8 +43,6 @@ var (
 	DefaultWriteL0PauseTrigger           = 12
 	DefaultWriteL0SlowdownTrigger        = 8
 )
-
-type CompactionFilterFactory func() func(key, value []byte) bool
 
 // Cacher is a caching algorithm.
 type Cacher interface {
@@ -172,11 +171,15 @@ type Options struct {
 	// The default value is 4KiB.
 	BlockSize int
 
-	// Factory function for compaction filter. Called once for each compaction run
-	// returned value is a function, that called for each record (key/value pair) touched
-	// during this compaction run. If filter function return false, record would be
-	// deleted during this compaction run
-	CompactionFilterFactory CompactionFilterFactory
+	// record time to live. 0 to disable ttl
+	//
+	// The default value is 0
+	TTL int
+
+	// If set, will be used as source of current time it ttl logic
+	//
+	// The default value is time.Now()
+	NowFunc func() time.Time
 
 	// CompactionExpandLimitFactor limits compaction size after expanded.
 	// This will be multiplied by table size limit at compaction target level.
@@ -374,6 +377,17 @@ func (o *Options) GetAltFilters() []filter.Filter {
 	return o.AltFilters
 }
 
+func (o *Options) GetOldTime() int64 {
+	if o.TTL == 0 {
+		return 0
+	}
+	now := time.Now()
+	if o.NowFunc != nil {
+		now = o.NowFunc()
+	}
+	return now.Add(-time.Duration(o.TTL) * time.Second).Unix()
+}
+
 func (o *Options) GetBlockCacher() Cacher {
 	if o == nil || o.BlockCacher == nil {
 		return DefaultBlockCacher
@@ -404,13 +418,6 @@ func (o *Options) GetBlockSize() int {
 		return DefaultBlockSize
 	}
 	return o.BlockSize
-}
-
-func (o *Options) GetCompactionFilter() func(key, value []byte) bool {
-	if o.CompactionFilterFactory == nil {
-		return nil
-	}
-	return o.CompactionFilterFactory()
 }
 
 func (o *Options) GetCompactionExpandLimit(level int) int {

@@ -1020,21 +1020,6 @@ func TestDB_RepeatedWritesToSameKey(t *testing.T) {
 	}
 }
 
-func TestDB_CompactionFilter(t *testing.T) {
-	factory := func() func(key, value []byte) bool {
-		return func(key, value []byte) bool {
-			return key[0] != 'd'
-		}
-	}
-	truno(t, &opt.Options{CompactionFilterFactory: factory}, func(h *dbHarness) {
-		h.put("one", "one")
-		h.put("deleted", "deleted")
-		h.compactRange("", "")
-		h.get("one", true)
-		h.get("deleted", false)
-	})
-}
-
 func TestDB_RepeatedWritesToSameKeyAfterReopen(t *testing.T) {
 	h := newDbHarnessWopt(t, &opt.Options{
 		DisableLargeBatchTransaction: true,

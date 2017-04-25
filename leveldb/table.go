@@ -25,6 +25,8 @@ type tFile struct {
 	seekLeft   int32
 	size       int64
 	imin, imax internalKey
+	// timestamp of latest record in this table, unixtime (seconds)
+	latest int64
 }
 
 // Returns true if given key is after largest key of this table.
@@ -78,7 +80,9 @@ func newTableFile(fd storage.FileDesc, size int64, imin, imax internalKey) *tFil
 }
 
 func tableFileFromRecord(r atRecord) *tFile {
-	return newTableFile(storage.FileDesc{storage.TypeTable, r.num}, r.size, r.imin, r.imax)
+	tf := newTableFile(storage.FileDesc{storage.TypeTable, r.num}, r.size, r.imin, r.imax)
+	tf.latest = r.latest
+	return tf
 }
 
 // tFiles hold multiple tFile.
@@ -314,6 +318,8 @@ func (t *tOps) create() (*tWriter, error) {
 
 // Builds table from src iterator.
 func (t *tOps) createFrom(src iterator.Iterator) (f *tFile, n int, err error) {
+	oldTime := t.s.o.Options.GetOldTime()
+	var latest int64
 	w, err := t.create()
 	if err != nil {
 		return
@@ -330,6 +336,12 @@ func (t *tOps) createFrom(src iterator.Iterator) (f *tFile, n int, err error) {
 		if err != nil {
 			return
 		}
+		if oldTime != 0 {
+			kt := keyTime(internalKey(src.Key()).ukey())
+			if kt > latest {
+				latest = kt
+			}
+		}
 	}
 	err = src.Error()
 	if err != nil {
@@ -338,6 +350,7 @@ func (t *tOps) createFrom(src iterator.Iterator) (f *tFile, n int, err error) {
 
 	n = w.tw.EntriesLen()
 	f, err = w.finish()
+	f.latest = latest
 	return
 }
 

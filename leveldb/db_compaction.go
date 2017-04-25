@@ -366,7 +366,13 @@ type tableCompactionBuilder struct {
 	minSeq    uint64
 	strict    bool
 	tableSize int
-	filter    func(key, value []byte) bool
+
+	// TTL related
+	// drop records with key time older than oldTime
+	// oldTime=0 disable ttl
+	oldTime int64
+	// latest key time encountered in this table
+	latest int64
 
 	tw *tWriter
 }
@@ -394,11 +400,17 @@ func (b *tableCompactionBuilder) appendKV(key, value []byte) error {
 	}
 
 	// Write key/value into table.
-	if b.filter == nil || b.filter(key, value) {
+	if b.oldTime == 0 {
 		return b.tw.append(key, value)
-	} else {
-		return nil
 	}
+	kt := keyTime(internalKey(key).ukey())
+	if kt > b.oldTime {
+		if kt > b.latest {
+			b.latest = kt
+		}
+		return b.tw.append(key, value)
+	}
+	return nil
 }
 
 func (b *tableCompactionBuilder) needFlush() bool {
@@ -407,6 +419,7 @@ func (b *tableCompactionBuilder) needFlush() bool {
 
 func (b *tableCompactionBuilder) flush() error {
 	t, err := b.tw.finish()
+	t.latest = b.latest
 	if err != nil {
 		return err
 	}
@@ -578,7 +591,7 @@ func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 		minSeq:    minSeq,
 		strict:    db.s.o.GetStrict(opt.StrictCompaction),
 		tableSize: db.s.o.GetCompactionTableSize(c.sourceLevel + 1),
-		filter:    db.s.o.GetCompactionFilter(),
+		oldTime:   db.s.o.Options.GetOldTime(),
 	}
 	db.compactionTransact("table@build", b)
 

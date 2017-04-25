@@ -14,6 +14,10 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/storage"
 )
 
+func keyTime(key []byte) int64 {
+	return int64(binary.BigEndian.Uint64(key[len(key)-8:]))
+}
+
 // ErrInternalKeyCorrupted records internal key corruption.
 type ErrInternalKeyCorrupted struct {
 	Ikey   []byte
