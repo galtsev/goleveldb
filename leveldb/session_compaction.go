@@ -40,7 +40,7 @@ func (s *session) flushMemdb(rec *sessionRecord, mdb *memdb.DB, maxLevel int) (i
 	flushLevel := s.pickMemdbLevel(t.imin.ukey(), t.imax.ukey(), maxLevel)
 	rec.addTableFile(flushLevel, t)
 
-	s.logf("memdb@flush created L%d@%d N·%d S·%s %q:%q", flushLevel, t.fd.Num, n, shortenb(int(t.size)), t.imin, t.imax)
+	s.logf("memdb@flush created L%d@%d N·%d S·%s %q:%q %d", flushLevel, t.fd.Num, n, shortenb(int(t.size)), t.imin, t.imax, t.latest)
 	return flushLevel, nil
 }
 

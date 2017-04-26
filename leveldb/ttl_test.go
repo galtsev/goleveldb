@@ -101,7 +101,7 @@ func TestTTL_l0compaction_move(t *testing.T) {
 }
 
 func TestTTL_merge_compaction(t *testing.T) {
-	nowFunc := func() time.Time { return time.Unix(10, 0) }
+	nowFunc := func() time.Time { return time.Unix(0, 10) }
 	h := newDbHarnessWopt(t, &opt.Options{WriteBuffer: 64 * opt.KiB, ExpireBefore: nowFunc})
 	defer h.close()
 
@@ -122,7 +122,7 @@ func TestTTL_merge_compaction(t *testing.T) {
 }
 
 func TestTTL_trivial_compaction(t *testing.T) {
-	nowFunc := func() time.Time { return time.Unix(10, 0) }
+	nowFunc := func() time.Time { return time.Unix(0, 10) }
 	h := newDbHarnessWopt(t, &opt.Options{WriteBuffer: 64 * opt.KiB, ExpireBefore: nowFunc})
 	defer h.close()
 	log := h.db.s.logf
@@ -148,7 +148,7 @@ func TestTTL_trivial_compaction(t *testing.T) {
 }
 
 func TestTTL_records_elimination(t *testing.T) {
-	nowFunc := func() time.Time { return time.Unix(10, 0) }
+	nowFunc := func() time.Time { return time.Unix(0, 10) }
 	h := newDbHarnessWopt(t, &opt.Options{WriteBuffer: 64 * opt.KiB, ExpireBefore: nowFunc})
 	defer h.close()
 
@@ -164,7 +164,7 @@ func TestTTL_records_elimination(t *testing.T) {
 }
 
 func TestTTL_table_elimination(t *testing.T) {
-	var expireBefore time.Time = time.Unix(800, 0)
+	var expireBefore time.Time = time.Unix(0, 800)
 	nowFunc := func() time.Time { return expireBefore }
 	h := newDbHarnessWopt(t, &opt.Options{WriteBuffer: 64 * opt.KiB, ExpireBefore: nowFunc})
 	defer h.close()
@@ -183,7 +183,7 @@ func TestTTL_table_elimination(t *testing.T) {
 	h.db.log("before table compaction")
 	h.assertKeys(expectPersist, true)
 
-	expireBefore = time.Unix(1500, 0)
+	expireBefore = time.Unix(0, 1500)
 	// create additional table to initiate compaction
 	h.withKeys(&expectPersist, 1600, 7).flush()
 	h.db.log("table compaction starting")
@@ -194,7 +194,7 @@ func TestTTL_table_elimination(t *testing.T) {
 }
 
 func TestTTL_old_age(t *testing.T) {
-	var expireBefore time.Time = time.Unix(800, 0)
+	var expireBefore time.Time = time.Unix(0, 800)
 	nowFunc := func() time.Time { return expireBefore }
 	h := newDbHarnessWopt(t, &opt.Options{WriteBuffer: 64 * opt.KiB, ExpireBefore: nowFunc})
 	defer h.close()
@@ -209,7 +209,7 @@ func TestTTL_old_age(t *testing.T) {
 	for i := 7; i < 10; i++ {
 		h.withKeys(&expectPersist, 1510, i).flush()
 	}
-	expireBefore = time.Unix(1600, 0)
+	expireBefore = time.Unix(0, 1600)
 	// trigger new version
 	h.withKeys(&expectPersist, 1610, 10).flush()
 
@@ -217,7 +217,7 @@ func TestTTL_old_age(t *testing.T) {
 }
 
 func TestTTL_save_latest_on_close(t *testing.T) {
-	var expireBefore time.Time = time.Unix(800, 0)
+	var expireBefore time.Time = time.Unix(0, 800)
 	nowFunc := func() time.Time { return expireBefore }
 	h := newDbHarnessWopt(t, &opt.Options{WriteBuffer: 64 * opt.KiB, ExpireBefore: nowFunc})
 	defer h.close()

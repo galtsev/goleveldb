@@ -25,7 +25,7 @@ type tFile struct {
 	seekLeft   int32
 	size       int64
 	imin, imax internalKey
-	// timestamp of latest record in this table, unixtime (seconds)
+	// timestamp of latest record in this table, unixtime (nanoseconds)
 	latest int64
 }
 

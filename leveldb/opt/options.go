@@ -374,7 +374,7 @@ func (o *Options) GetAltFilters() []filter.Filter {
 
 func (o *Options) GetExpireBefore() int64 {
 	if o.ExpireBefore != nil {
-		return o.ExpireBefore().Unix()
+		return o.ExpireBefore().UnixNano()
 	}
 	return 0
 }
