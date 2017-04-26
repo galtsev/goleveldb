@@ -191,6 +191,17 @@ func (s *session) commit(r *sessionRecord) (err error) {
 	v := s.version()
 	defer v.release()
 
+	// mark for deletion all tables with latest < oldTime
+	oldTime := s.o.Options.GetOldTime()
+	if oldTime != 0 {
+		for lvl := range v.levels {
+			for _, tb := range v.levels[lvl] {
+				if tb.latest < oldTime {
+					r.delTable(lvl, tb.fd.Num)
+				}
+			}
+		}
+	}
 	// spawn new version based on current version
 	nv := v.spawn(r)
 

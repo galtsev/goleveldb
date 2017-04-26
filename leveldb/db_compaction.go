@@ -557,16 +557,24 @@ func (b *tableCompactionBuilder) revert() error {
 
 func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 	defer c.release()
+	oldTime := db.s.o.Options.GetOldTime()
 
 	rec := &sessionRecord{}
 	rec.addCompPtr(c.sourceLevel, c.imax)
 
 	if !noTrivial && c.trivial() {
+		var cname string
 		t := c.levels[0][0]
-		db.logf("table@move L%d@%d -> L%d", c.sourceLevel, t.fd.Num, c.sourceLevel+1)
-		rec.delTable(c.sourceLevel, t.fd.Num)
-		rec.addTableFile(c.sourceLevel+1, t)
-		db.compactionCommit("table-move", rec)
+		if oldTime != 0 && t.latest < oldTime {
+			rec.delTable(c.sourceLevel, t.fd.Num)
+			cname = "table-delete"
+		} else {
+			db.logf("table@move L%d@%d -> L%d", c.sourceLevel, t.fd.Num, c.sourceLevel+1)
+			rec.delTable(c.sourceLevel, t.fd.Num)
+			rec.addTableFile(c.sourceLevel+1, t)
+			cname = "table-move"
+		}
+		db.compactionCommit(cname, rec)
 		return
 	}
 
