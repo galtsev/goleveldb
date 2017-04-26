@@ -419,10 +419,10 @@ func (b *tableCompactionBuilder) needFlush() bool {
 
 func (b *tableCompactionBuilder) flush() error {
 	t, err := b.tw.finish()
-	t.latest = b.latest
 	if err != nil {
 		return err
 	}
+	t.latest = b.latest
 	b.rec.addTableFile(b.c.sourceLevel+1, t)
 	b.stat1.write += t.size
 	b.s.logf("table@build created L%d@%d N·%d S·%s %q:%q", b.c.sourceLevel+1, t.fd.Num, b.tw.tw.EntriesLen(), shortenb(int(t.size)), t.imin, t.imax)

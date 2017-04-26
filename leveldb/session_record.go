@@ -195,6 +195,7 @@ func (p *sessionRecord) encode(w io.Writer) error {
 		p.putUvarint(w, uint64(r.level))
 		p.putVarint(w, r.num)
 		p.putVarint(w, r.size)
+		p.putVarint(w, r.latest)
 		p.putBytes(w, r.imin)
 		p.putBytes(w, r.imax)
 	}
@@ -311,10 +312,11 @@ func (p *sessionRecord) decode(r io.Reader) error {
 			level := p.readLevel("add-table.level", br)
 			num := p.readVarint("add-table.num", br)
 			size := p.readVarint("add-table.size", br)
+			latest := p.readVarint("add-table.latest", br)
 			imin := p.readBytes("add-table.imin", br)
 			imax := p.readBytes("add-table.imax", br)
 			if p.err == nil {
-				p.addTable(level, num, size, imin, imax)
+				p.addTable2(level, num, size, imin, imax, latest)
 			}
 		case recDelTable:
 			level := p.readLevel("del-table.level", br)

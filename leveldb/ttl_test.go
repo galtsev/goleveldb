@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"github.com/stretchr/testify/assert"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"sort"
 	"testing"
 	"time"
 )
@@ -52,6 +53,23 @@ func (h *dbHarness) assertLevels(levels ...int) {
 	}
 }
 
+func (h *dbHarness) assertLatest(level int, expected ...int) {
+	var actual []int
+	for _, lvl := range h.db.s.version().levels[level] {
+		actual = append(actual, int(lvl.latest))
+	}
+	if len(actual) != len(expected) {
+		h.t.Errorf("Wrong number of records, expected %d, actual %d", len(expected), len(actual))
+	}
+	sort.Sort(sort.IntSlice(actual))
+	sort.Sort(sort.IntSlice(expected))
+	for i := range expected {
+		if actual[i] != expected[i] {
+			h.t.Errorf("Bad latest, expected %d actual %d", expected[i], actual[i])
+		}
+	}
+}
+
 // this force L0 compaction with merge
 func TestTTL_l0compaction(t *testing.T) {
 	h := newDbHarnessWopt(t, &opt.Options{WriteBuffer: 64 * opt.KiB})
@@ -89,7 +107,7 @@ func TestTTL_merge_compaction(t *testing.T) {
 
 	var keys, drop []string
 	h.withKeys(&keys, 34, 1, 100).flush()
-	assert.Equal(t, int64(34), h.db.s.stVersion.levels[0][0].latest)
+	h.assertLatest(0, 34)
 
 	h.withKeys(&keys, 30, 2, 101).flush()
 	h.withKeys(&keys, 36, 3, 102).flush()
@@ -173,4 +191,40 @@ func TestTTL_table_elimination(t *testing.T) {
 	h.db.log("table compaction finished")
 	h.assertKeys(expectDrop, false)
 	h.assertKeys(expectPersist, true)
+}
+
+func TestTTL_old_age(t *testing.T) {
+	var currentTime time.Time = time.Unix(1000, 0)
+	nowFunc := func() time.Time { return currentTime }
+	h := newDbHarnessWopt(t, &opt.Options{WriteBuffer: 64 * opt.KiB, TTL: 200, NowFunc: nowFunc})
+	defer h.close()
+
+	var expectPersist, expectDrop []string
+
+	// create two tables with old records
+	h.withKeys(&expectDrop, 1010, 1, 2, 3).flush()
+	h.withKeys(&expectDrop, 1010, 4, 5, 6).flush()
+
+	// create tables with recent records
+	for i := 7; i < 10; i++ {
+		h.withKeys(&expectPersist, 1510, i).flush()
+	}
+	currentTime = time.Unix(1600, 0)
+	// trigger new version
+	h.withKeys(&expectPersist, 1610, 10).flush()
+
+	h.assertKeys(expectDrop, false)
+}
+
+func TestTTL_save_latest_on_close(t *testing.T) {
+	var currentTime time.Time = time.Unix(1000, 0)
+	nowFunc := func() time.Time { return currentTime }
+	h := newDbHarnessWopt(t, &opt.Options{WriteBuffer: 64 * opt.KiB, TTL: 200, NowFunc: nowFunc})
+	defer h.close()
+
+	var keys []string
+	h.withKeys(&keys, 1010, 1, 2, 3).flush()
+	h.withKeys(&keys, 1030, 4, 5, 6).withKeys(&keys, 1050, 7, 8).flush()
+	h.reopenDB()
+	h.assertLatest(0, 1010, 1050)
 }
