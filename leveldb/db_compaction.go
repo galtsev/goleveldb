@@ -427,6 +427,7 @@ func (b *tableCompactionBuilder) flush() error {
 	b.stat1.write += t.size
 	b.s.logf("table@build created L%d@%d N·%d S·%s %q:%q %d", b.c.sourceLevel+1, t.fd.Num, b.tw.tw.EntriesLen(), shortenb(int(t.size)), t.imin, t.imax, t.latest)
 	b.tw = nil
+	b.latest = 0
 	return nil
 }
 
