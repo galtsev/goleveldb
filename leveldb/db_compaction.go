@@ -557,7 +557,7 @@ func (b *tableCompactionBuilder) revert() error {
 
 func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 	defer c.release()
-	oldTime := db.s.o.Options.GetOldTime()
+	oldTime := db.s.o.Options.GetExpireBefore()
 
 	rec := &sessionRecord{}
 	rec.addCompPtr(c.sourceLevel, c.imax)
@@ -599,7 +599,7 @@ func (db *DB) tableCompaction(c *compaction, noTrivial bool) {
 		minSeq:    minSeq,
 		strict:    db.s.o.GetStrict(opt.StrictCompaction),
 		tableSize: db.s.o.GetCompactionTableSize(c.sourceLevel + 1),
-		oldTime:   db.s.o.Options.GetOldTime(),
+		oldTime:   db.s.o.Options.GetExpireBefore(),
 	}
 	db.compactionTransact("table@build", b)
 

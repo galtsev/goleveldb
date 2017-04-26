@@ -192,7 +192,7 @@ func (s *session) commit(r *sessionRecord) (err error) {
 	defer v.release()
 
 	// mark for deletion all tables with latest < oldTime
-	oldTime := s.o.Options.GetOldTime()
+	oldTime := s.o.Options.GetExpireBefore()
 	if oldTime != 0 {
 		for lvl := range v.levels {
 			for _, tb := range v.levels[lvl] {

@@ -171,15 +171,10 @@ type Options struct {
 	// The default value is 4KiB.
 	BlockSize int
 
-	// record time to live. 0 to disable ttl
-	//
-	// The default value is 0
-	TTL int
-
 	// If set, will be used as source of current time it ttl logic
 	//
 	// The default value is time.Now()
-	NowFunc func() time.Time
+	ExpireBefore func() time.Time
 
 	// CompactionExpandLimitFactor limits compaction size after expanded.
 	// This will be multiplied by table size limit at compaction target level.
@@ -377,15 +372,11 @@ func (o *Options) GetAltFilters() []filter.Filter {
 	return o.AltFilters
 }
 
-func (o *Options) GetOldTime() int64 {
-	if o.TTL == 0 {
-		return 0
+func (o *Options) GetExpireBefore() int64 {
+	if o.ExpireBefore != nil {
+		return o.ExpireBefore().Unix()
 	}
-	now := time.Now()
-	if o.NowFunc != nil {
-		now = o.NowFunc()
-	}
-	return now.Add(-time.Duration(o.TTL) * time.Second).Unix()
+	return 0
 }
 
 func (o *Options) GetBlockCacher() Cacher {

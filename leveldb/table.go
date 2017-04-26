@@ -318,7 +318,7 @@ func (t *tOps) create() (*tWriter, error) {
 
 // Builds table from src iterator.
 func (t *tOps) createFrom(src iterator.Iterator) (f *tFile, n int, err error) {
-	oldTime := t.s.o.Options.GetOldTime()
+	oldTime := t.s.o.Options.GetExpireBefore()
 	var latest int64
 	w, err := t.create()
 	if err != nil {
